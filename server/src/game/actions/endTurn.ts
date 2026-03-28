@@ -1,10 +1,11 @@
 // server/src/game/actions/endTurn.ts
-import { GameState } from "shared/types";
+import { GameState, GameConfig } from "shared/types";
 import { GameError } from "shared/errors/GameError";
 
 export function endTurn(
   gameState: GameState,
-  playerId: string
+  playerId: string,
+  config: GameConfig
 ) {
 
   const player = gameState.players.find(p => p.id === playerId);
@@ -13,9 +14,14 @@ export function endTurn(
     throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
-  // 勝利条件チェック
-  if (player.point >= 15) {
-    gameState.roundEndTriggered = true;
+  // 勝利条件チェック（config対応）
+  if (config.winCondition.type === 'points') {
+    if (player.point >= config.winCondition.target) {
+      if (!gameState.roundEndTriggered) {
+        gameState.roundEndTriggered = true;
+        gameState.roundStartPlayer = gameState.currentPlayer;
+      }
+    }
   }
 
   // 次プレイヤー
@@ -37,24 +43,49 @@ export function endTurn(
 
 }
 
-export function isGameEnded(gameState: GameState): boolean {
+export function isGameEnded(gameState: GameState, config: GameConfig): boolean {
 
-  if (!gameState.roundEndTriggered) {
-    return false;
+  if (config.winCondition.type === 'points') {
+    if (!gameState.roundEndTriggered) {
+      return false;
+    }
+
+    return gameState.currentPlayer === gameState.roundStartPlayer;
   }
 
-  if (gameState.currentPlayer === gameState.roundStartPlayer) {
-    return true;
+  if (config.winCondition.type === 'turn_limit') {
+    return gameState.turn >= config.winCondition.maxTurns;
   }
 
   return false;
 }
 
-export function getWinner(gameState: GameState) {
+export function getWinner(gameState: GameState, config: GameConfig) {
 
   const players = [...gameState.players];
 
-  players.sort((a, b) => b.point - a.point);
+  if (config.winCondition.type === 'points') {
+    const target = config.winCondition.target;
+
+    // ターン順に並び替え（roundStartPlayer から開始）
+    const startIndex = gameState.players.findIndex(p => p.id === gameState.roundStartPlayer);
+
+    for (let i = 0; i < gameState.players.length; i++) {
+      const index = (startIndex + i) % gameState.players.length;
+      const player = gameState.players[index];
+
+      if (player.point >= target) {
+        return player;
+      }
+    }
+
+    return players[0];
+  }
+
+  if (config.winCondition.type === 'turn_limit') {
+    players.sort((a, b) => b.point - a.point);
+    return players[0];
+  }
 
   return players[0];
 }

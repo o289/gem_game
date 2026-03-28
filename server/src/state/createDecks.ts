@@ -1,6 +1,6 @@
 // server/src/state/createDecks.ts
 
-import { Card, Noble } from "shared/types";
+import { GameConfig, Card, Noble } from "shared/types";
 
 // 既存の生成ロジック（仮）
 import {
@@ -21,9 +21,9 @@ export type Decks = {
   nobles: Noble[];
 };
 
-export function createDecks(playerCount: number): Decks {
+export function createDecks(playerCount: number, config: GameConfig): Decks {
   // 外部生成ロジックを呼び出す
-  const { level1, level2, level3 } = generateDecks();
+  const { level1, level2, level3 } = generateDecks(config);
   const nobles = generateNobles(playerCount);
 
   // シャッフルして返す

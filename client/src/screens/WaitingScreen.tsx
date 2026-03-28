@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { RoomPlayer } from "shared/types"
+import { useGameConfig } from "src/context/GameConfigContext"
 
 type Props = {
     roomId: string
@@ -13,6 +14,8 @@ type Props = {
 
 export default function({ roomId, roomPlayers, playerId, hostId, isHost, startGame, handleLeaveRoom }: Props){
     const [copied, setCopied] = useState(false)
+    const { config, setConfig } = useGameConfig()
+    const winCondition = config.winCondition
     
     
     const handleCopyRoomId = async () => {
@@ -56,13 +59,173 @@ export default function({ roomId, roomPlayers, playerId, hostId, isHost, startGa
             ))}
             </div>
 
+            {/* ルール設定 */}
+            
+
             {isHost && (
-            <button
-                className="w-full max-w-xs px-6 py-3 text-base rounded-lg font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 hover:scale-105 transition-all shadow-lg"
-                onClick={startGame}
-            >
-                ゲーム開始
-            </button>
+            <>
+                <div className="w-full max-w-xs px-6 py-4 rounded-xl bg-white/10 backdrop-blur border border-white/20 shadow-lg flex flex-col gap-4">
+
+                <div className="text-sm text-gray-300">ルール設定</div>
+
+                {/* 勝利条件タイプ */}
+                <div className="flex justify-between items-center">
+                    <span>勝利条件</span>
+                    <div className="flex items-center gap-2">
+                    <button
+                        onClick={() =>
+                        setConfig({
+                            ...config,
+                            winCondition:
+                            config.winCondition.type === "points"
+                                ? { type: "turn_limit", maxTurns: 20 }
+                                : { type: "points", target: 15 }
+                        })
+                        }
+                    >
+                        &lt;
+                    </button>
+                    <span className="text-sm">
+                        {winCondition.type === "points" ? "ポイント" : "ターン"}
+                    </span>
+                    <button
+                        onClick={() =>
+                        setConfig({
+                            ...config,
+                            winCondition:
+                            config.winCondition.type === "points"
+                                ? { type: "turn_limit", maxTurns: 20 }
+                                : { type: "points", target: 15 }
+                        })
+                        }
+                    >
+                        &gt;
+                    </button>
+                    </div>
+                </div>
+
+                {/* ポイント or ターン */}
+                {winCondition.type === "points" ? (
+                    <div className="flex justify-between items-center">
+                    <span>ポイント</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                        onClick={() => {
+                            const options = [10, 15, 20, 25, 30, 40]
+                            const currentIndex = options.indexOf(winCondition.target)
+                            const next = options[(currentIndex - 1 + options.length) % options.length]
+                            setConfig({ ...config, winCondition: { type: "points", target: next } })
+                        }}
+                        >
+                        &lt;
+                        </button>
+                        <span>{winCondition.target}</span>
+                        <button
+                        onClick={() => {
+                            const options = [10, 15, 20, 25, 30, 40]
+                            const currentIndex = options.indexOf(winCondition.target)
+                            const next = options[(currentIndex + 1) % options.length]
+                            setConfig({ ...config, winCondition: { type: "points", target: next } })
+                        }}
+                        >
+                        &gt;
+                        </button>
+                    </div>
+                    </div>
+                ) : (
+                    <div className="flex justify-between items-center">
+                    <span>ターン</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                        onClick={() => {
+                            const options = [20, 25, 30, 35, 40]
+                            const currentIndex = options.indexOf(winCondition.maxTurns)
+                            const next = options[(currentIndex - 1 + options.length) % options.length]
+                            setConfig({ ...config, winCondition: { type: "turn_limit", maxTurns: next } })
+                        }}
+                        >
+                        &lt;
+                        </button>
+                        <span>{winCondition.maxTurns}</span>
+                        <button
+                        onClick={() => {
+                            const options = [20, 25, 30, 35, 40]
+                            const currentIndex = options.indexOf(winCondition.maxTurns)
+                            const next = options[(currentIndex + 1) % options.length]
+                            setConfig({ ...config, winCondition: { type: "turn_limit", maxTurns: next } })
+                        }}
+                        >
+                        &gt;
+                        </button>
+                    </div>
+                    </div>
+                )}
+
+                {/* デッキ枚数 */}
+                <div className="flex justify-between items-center">
+                    <span>カード枚数</span>
+                    <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                        const options = [40, 50, 60, 70, 100]
+                        const currentIndex = options.indexOf(config.deck.level1Count)
+                        const next = options[(currentIndex - 1 + options.length) % options.length]
+                        setConfig({ ...config, deck: { level1Count: next } })
+                        }}
+                    >
+                        &lt;
+                    </button>
+                    <span>{config.deck.level1Count}</span>
+                    <button
+                        onClick={() => {
+                        const options = [40, 50, 60, 70, 100]
+                        const currentIndex = options.indexOf(config.deck.level1Count)
+                        const next = options[(currentIndex + 1) % options.length]
+                        setConfig({ ...config, deck: { level1Count: next } })
+                        }}
+                    >
+                        &gt;
+                    </button>
+                    </div>
+                </div>
+
+                {/* ゴールド */}
+                <div className="flex justify-between items-center">
+                    <span>ゴールド</span>
+                    <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                        const options = [3, 5, 7]
+                        const currentIndex = options.indexOf(config.token.goldCount)
+                        const next = options[(currentIndex - 1 + options.length) % options.length]
+                        setConfig({ ...config, token: { goldCount: next } })
+                        }}
+                    >
+                        &lt;
+                    </button>
+                    <span>{config.token.goldCount}</span>
+                    <button
+                        onClick={() => {
+                        const options = [3, 5, 7]
+                        const currentIndex = options.indexOf(config.token.goldCount)
+                        const next = options[(currentIndex + 1) % options.length]
+                        setConfig({ ...config, token: { goldCount: next } })
+                        }}
+                    >
+                        &gt;
+                    </button>
+                    </div>
+                </div>
+
+                </div>
+
+                <button
+                    className="w-full max-w-xs px-6 py-3 text-base rounded-lg font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 hover:scale-105 transition-all shadow-lg"
+                    onClick={startGame}
+                >
+                    ゲーム開始
+                </button>
+                </>
             )}
 
             <button

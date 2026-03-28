@@ -11,6 +11,8 @@ import { GameState, RoomPlayer } from "shared/types"
 import { api } from "./api/apiClient"
 import { socketClient } from "./socket/socketClient"
 
+import { useGameConfig } from "./context/GameConfigContext"
+
 
 type RoomStatus = "waiting" | "playing" | null
 
@@ -26,6 +28,7 @@ export default function App() {
   const [name, setName] = useState("")
   const [isHost, setIsHost] = useState(false)
 
+  const { config } = useGameConfig()
   
 
   useEffect(() => {
@@ -133,7 +136,7 @@ export default function App() {
   // ゲーム開始
   const startGame = () => {
     try {
-      socketClient.startGame(roomId)
+      socketClient.startGame(roomId, config)
     } catch (err) {
       console.error("startGame error:", err)
     }

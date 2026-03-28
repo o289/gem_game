@@ -1,6 +1,6 @@
 // shared/src/socket/events.ts
 
-import { GameState } from "../types";
+import { GameState, GameConfig } from "../types";
 
 // -----------------------------
 // Payload Types
@@ -18,6 +18,7 @@ export type LeaveRoomPayload = {
 
 export type StartGamePayload = {
   roomId: string;
+  config: GameConfig
 };
 
 export type ReconnectPlayerPayload = {

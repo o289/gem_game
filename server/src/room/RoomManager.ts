@@ -1,4 +1,4 @@
-import { GameState } from "shared/types";
+import { GameState, GameConfig, defaultGameConfig } from "shared/types";
 import { createGameState } from "../state/createGameState";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
@@ -14,6 +14,7 @@ export type Room = {
   hostId: string;
   players: RoomPlayer[];
   gameState?: GameState;
+  config: GameConfig
   status: RoomStatus;
 };
 
@@ -32,6 +33,7 @@ export class RoomManager {
       players: [
         { id: hostId, name, socketId }
       ],
+      config: defaultGameConfig,
       status: "waiting",
     };
 
@@ -110,6 +112,7 @@ export class RoomManager {
 
   startGame(
     roomId: string,
+    config: GameConfig,
     decks: {
       level1: any[];
       level2: any[];
@@ -122,6 +125,8 @@ export class RoomManager {
     if (!room) {
       throw new Error("ROOM_NOT_FOUND");
     }
+
+    room.config = config
 
     if (room.players.length < 2) {
       throw new Error("NOT_ENOUGH_PLAYERS");
@@ -138,7 +143,9 @@ export class RoomManager {
       deck2: decks.level2,
       deck3: decks.level3,
       nobles,
-    });
+    },
+    room.config
+  );
 
     console.log("⑤ after createGameState");
 

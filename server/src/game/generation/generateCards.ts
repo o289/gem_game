@@ -1,7 +1,5 @@
 import { randomUUID } from "crypto";
-
-import { Card, Cost } from "shared/types";
-import { Color } from "shared/types";
+import { GameConfig, Card, Cost, Color } from "shared/types";
 
 const COLORS: Color[] = [
   "diamond",
@@ -178,13 +176,15 @@ function generateBalancedDeck(
 
 }
 
-export function generateDecks() {
+export function generateDecks(config: GameConfig) {
+  const level1Count = config.deck.level1Count;
 
-  const level1 = generateBalancedDeck(40, generateLevel1Card);
 
-  const level2 = generateBalancedDeck(30, generateLevel2Card);
+  const level1 = generateBalancedDeck(level1Count, generateLevel1Card);
 
-  const level3 = generateBalancedDeck(20, generateLevel3Card);
+  const level2 = generateBalancedDeck(level1Count - 10, generateLevel2Card);
+
+  const level3 = generateBalancedDeck(level1Count - 20, generateLevel3Card);
 
   return {
     level1,

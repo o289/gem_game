@@ -104,11 +104,14 @@ router.post("/:roomId/start", (req, res) => {
     const { roomId } = req.params;
 
     const players = roomManager.getPlayers(roomId);
+    const room = roomManager.getRoom(roomId);
+
+    if (!room) return
 
     // デッキ生成
-    const { deck1, deck2, deck3, nobles } = createDecks(players.length);
+    const { deck1, deck2, deck3, nobles } = createDecks(players.length, room.config);
 
-    const gameState = roomManager.startGame(roomId, {
+    const gameState = roomManager.startGame(roomId, room.config, {
       level1: deck1,
       level2: deck2,
       level3: deck3,

@@ -2,13 +2,35 @@ import { spawn } from "child_process"
 import http from "http"
 import fs from "fs"
 
+const COLORS = {
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  blue: "\x1b[34m",
+  yellow: "\x1b[33m",
+}
+
 const processes = []
 
-function run(cmd, args, options = {}) {
+function run(cmd, args, label, options = {}) {
+  let color = COLORS.reset
+  if (label === "ngrok") color = COLORS.green
+
   const p = spawn(cmd, args, {
-    stdio: "inherit",
+    stdio: ["inherit", "pipe", "pipe"],
+    shell: true,
+    detached: true,
     ...options,
   })
+
+  // ログにプレフィックスを付ける
+  p.stdout.on("data", d => {
+    process.stdout.write(`${color}[${label}] ${d}${COLORS.reset}`)
+  })
+
+  p.stderr.on("data", d => {
+    process.stderr.write(`${color}[${label} ERROR] ${d}${COLORS.reset}`)
+  })
+
   processes.push(p)
   return p
 }
@@ -17,11 +39,10 @@ function cleanup() {
   console.log("\n終了処理中...")
 
   processes.forEach(p => {
-    if (!p.killed) {
-      try {
-        p.kill("SIGINT")
-      } catch {}
-    }
+    try {
+      // プロセスグループごと終了
+      process.kill(-p.pid, "SIGINT")
+    } catch {}
   })
 
   process.exit()
@@ -86,7 +107,7 @@ async function main() {
   console.log("client build 完了")
 
   // ② ngrok起動
-  const ngrok = run("ngrok", ["http", "3000"])
+  const ngrok = run("ngrok", ["http", "3000"], "ngrok")
 
   console.log("ngrok起動中...")
 
@@ -127,7 +148,7 @@ async function main() {
   console.log("server .env 更新完了")
 
   // ⑤ server起動
-  run("npm", ["run", "dev"], {
+  run("npm", ["run", "dev"], "server", {
     cwd: "./server",
   })
 
@@ -135,7 +156,7 @@ async function main() {
   await wait(1000)
 
   // ⑥ client起動
-  run("npm", ["run", "dev"], {
+  run("npm", ["run", "dev"], "client", {
     cwd: "./client",
   })
 }

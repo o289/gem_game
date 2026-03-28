@@ -1,5 +1,6 @@
 // server/src/socket/socketServer.ts
 import { createDecks } from "../state/createDecks";
+import { GameConfig } from "shared/types";
 import { Server } from "socket.io";
 
 import {
@@ -23,6 +24,9 @@ function handleAction(
 ) {
 
   try {
+    const room = roomManager.getRoom(roomId)
+    if (!room) return
+    const config = room.config
 
     const gameState = roomManager.getGameState(roomId);
 
@@ -32,11 +36,11 @@ function handleAction(
 
     checkNobles(gameState, currentPlayer );
 
-    endTurn(gameState, currentPlayer);
+    endTurn(gameState, currentPlayer, config);
 
-    if (isGameEnded(gameState)) {
+    if (isGameEnded(gameState, config)) {
 
-      const winner = getWinner(gameState);
+      const winner = getWinner(gameState, config);
 
       // ★ winnerをgameStateに保存
       gameState.winnerId = winner.id;
@@ -184,7 +188,7 @@ export function createSocketServer(httpServer: any) {
 
 
     // ゲーム開始
-    socket.on("startGame", ({ roomId }) => {    
+    socket.on("startGame", ({ roomId, config }) => {    
       try {
         console.log("startGame called")
         console.log(roomId)
@@ -200,12 +204,13 @@ export function createSocketServer(httpServer: any) {
 
         // 🔥 ここが今回の追加
         console.log("④ before createDecks");
-        const { deck1, deck2, deck3, nobles } = createDecks(playerCount);
+        const { deck1, deck2, deck3, nobles } = createDecks(playerCount, room.config);
         console.log("⑤ after createDecks");
 
         console.log("⑥ before RoomManager.startGame");
         const gameState = roomManager.startGame(
           roomId,
+          config,
           {
             level1: deck1,
             level2: deck2,
@@ -232,7 +237,7 @@ export function createSocketServer(httpServer: any) {
     // トークン取得（統一）
     socket.on("takeTokens", payload => {
 
-      handleAction(io, socket, payload.roomId, () => {
+      handleAction(io, socket, payload.roomId,() => {
 
         const gameState = roomManager.getGameState(payload.roomId);
 
@@ -258,7 +263,7 @@ export function createSocketServer(httpServer: any) {
     // カード予約
     socket.on("reserveCard", payload => {
 
-      handleAction(io, socket, payload.roomId, () => {
+      handleAction(io, socket, payload.roomId,() => {
 
         const gameState = roomManager.getGameState(payload.roomId);
 
@@ -275,7 +280,7 @@ export function createSocketServer(httpServer: any) {
     // カード購入
     socket.on("buyCard", payload => {
 
-      handleAction(io, socket, payload.roomId, () => {
+      handleAction(io, socket, payload.roomId,() => {
 
         const gameState = roomManager.getGameState(payload.roomId);
 

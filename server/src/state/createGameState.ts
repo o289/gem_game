@@ -1,6 +1,6 @@
 // server/src/state/createGameState.ts
 
-import { GameState, Player, Card, Noble } from "shared/types";
+import { GameState, GameConfig, Player, Card, Noble } from "shared/types";
 
 type CreateGameStateParams = {
   players: { id: string; name: string }[];
@@ -10,7 +10,7 @@ type CreateGameStateParams = {
   nobles: Noble[];
 };
 
-export function createGameState(params: CreateGameStateParams): GameState {
+export function createGameState(params: CreateGameStateParams, config: GameConfig): GameState {
   const { players: inputPlayers, deck1, deck2, deck3, nobles } = params;
 
   // プレイヤー初期化
@@ -64,7 +64,7 @@ export function createGameState(params: CreateGameStateParams): GameState {
       sapphire: base,
       onyx: base,
       ruby: base,
-      gold: 5,
+      gold: config.token.goldCount || 5,
     };
   }
 
@@ -120,4 +120,6 @@ export function createGameState(params: CreateGameStateParams): GameState {
 //   deck2,
 //   deck3,
 //   nobles,
-// });
+// },
+// config
+// );

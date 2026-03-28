@@ -5,7 +5,7 @@ import {
   ServerToClientEvents
 } from "shared/socket/events"
 
-import { GameState } from "shared/types";
+import { GameConfig, GameState } from "shared/types";
 
 class SocketClient {
 
@@ -108,9 +108,9 @@ class SocketClient {
     }
   }
 
-  startGame(roomId: string) {
+  startGame(roomId: string, config: GameConfig) {
 
-    this.socket.emit("startGame", { roomId });
+    this.socket.emit("startGame", { roomId, config });
 
   }
 
