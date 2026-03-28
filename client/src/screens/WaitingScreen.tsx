@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { RoomPlayer } from "shared/types"
 import { useGameConfig } from "src/context/GameConfigContext"
+import { Modal } from '../components/ui/Modal'
+
 
 type Props = {
     roomId: string
@@ -17,6 +19,8 @@ export default function({ roomId, roomPlayers, playerId, hostId, isHost, startGa
     const { config, setConfig } = useGameConfig()
     const winCondition = config.winCondition
     
+    const [openMenu, setOpenMenu] = useState(false)
+    const [showRule, setShowRule] = useState(false)
     
     const handleCopyRoomId = async () => {
         try {
@@ -30,6 +34,25 @@ export default function({ roomId, roomPlayers, playerId, hostId, isHost, startGa
 
     return (
         <div className="flex flex-col items-center justify-center min-h-dvh w-full px-4 gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white">
+            <button
+              className="absolute top-4 right-4 z-50 text-white text-2xl"
+              onClick={() => setOpenMenu(!openMenu)}
+            >
+              ☰
+            </button>
+            {openMenu && (
+              <div className="absolute top-14 right-4 bg-black/80 backdrop-blur border border-white/20 rounded-lg p-4 flex flex-col gap-2 z-50">
+                <button
+                  className="text-left hover:text-yellow-400"
+                  onClick={() => {
+                    setShowRule(true)
+                    setOpenMenu(false)
+                  }}
+                >
+                  ルールブック
+                </button>
+              </div>
+            )}
             <div className="text-3xl font-bold tracking-wide bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             待機中...
             </div>
@@ -234,6 +257,46 @@ export default function({ roomId, roomPlayers, playerId, hostId, isHost, startGa
             >
             ルーム退出
             </button>
+
+            <Modal isOpen={showRule}>
+              <div className="flex flex-col gap-4">
+                <div className="text-lg font-bold text-white">ルール</div>
+                <div className="text-sm text-gray-300 whitespace-pre-wrap">
+                    {`    
+                        ■ ゲーム概要
+                        宝石トークンを集めて発展カードを購入し、
+                        名声ポイントを獲得していくゲームです。
+
+                        ■ 手番でできること（1つ選択）
+                        ・異なる色のトークンを3つ取る
+                        ・同じ色のトークンを2つ取る（4枚以上ある場合）
+                        ・カードを予約してゴールドトークンを得る
+                        ・カードを購入する
+
+                        ■ カード
+                        カードはポイントとボーナスを持ち、
+                        ボーナスは次のカード購入時の割引になります。
+
+                        ■ 貴族
+                        条件を満たすと自動で訪問し、
+                        3ポイント獲得できます。
+
+                        ■ トークン制限
+                        手番終了時、トークンは最大10枚までです。
+
+                        ■ 勝利条件
+                        規定ポイントに到達すると最終ラウンドへ。
+                        最もポイントが高いプレイヤーが勝利します。
+                    `}
+                </div>
+                <button
+                  className="mt-2 w-full py-2 bg-white/10 border border-white/20 text-white rounded hover:bg-white/20 transition"
+                  onClick={() => setShowRule(false)}
+                >
+                  閉じる
+                </button>
+              </div>
+            </Modal>
         </div>
     )
 

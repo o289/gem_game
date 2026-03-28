@@ -27,10 +27,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   const { gameState, setGameState, myPlayerId, isMyTurn, myPlayer, actionState, setActionState } = useGameContext()
   const { resetTokens, selectedTokens } = useTokenContext()
   const assetsLoaded = useAssets()
+  
   // ===== 状態 =====
   const [showMyInfo, setShowMyInfo] = useState<string | false>(false)
   const [playerIndex, setPlayerIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [showTurnModal, setShowTurnModal] = useState(false)
+  const [prevTurn, setPrevTurn] = useState<number | null>(null)
+  
   
   // ===== UI =====
   useEffect(() => {
@@ -53,6 +57,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
       socketClient.offGameStateUpdate()
     }
   }, [roomId])
+
+  useEffect(() => {
+    if (gameState) {
+      if (prevTurn !== null && gameState.turn !== prevTurn) {
+        setShowTurnModal(true)
+
+        setTimeout(() => {
+          setShowTurnModal(false)
+        }, 1000)
+      }
+
+      setPrevTurn(gameState.turn)
+    }
+  }, [gameState?.turn])
 
   useEffect(() => {
     socketClient.onActionError((err) => {
@@ -95,7 +113,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
             setShowMyInfo(myPlayerId)
           }}
         >
-          ☰
+          📖
         </button>
         
         {/* ボード */}
@@ -290,6 +308,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
           </div>
         </Modal>
         
+        <Modal isOpen={showTurnModal}>
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="text-lg text-gray-300">
+              ターン: {gameState.turn}
+            </div>
+          </div>
+        </Modal>
+
         <Modal isOpen={!!error}>
           <div className="flex flex-col items-center gap-4">
             <div className="text-red-400 text-lg font-bold">
@@ -324,8 +350,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
           </div>
         </Modal>
 
-        
-        
       </div>
     </div>
   )
