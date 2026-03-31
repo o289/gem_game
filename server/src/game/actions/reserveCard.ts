@@ -1,7 +1,7 @@
 // server/src/game/actions/reserveCard.ts
 
 import { GameState } from "shared/types";
-import { GameError } from "shared/errors/GameError";
+import { GameError, RoomError } from "shared/errors/Error";
 
 
 function findCardInMarket(gameState: GameState, cardId: string) {
@@ -62,7 +62,7 @@ export function reserveCard(
   const player = gameState.players.find(p => p.id === playerId);
 
   if (!player) {
-    throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
   // 予約上限

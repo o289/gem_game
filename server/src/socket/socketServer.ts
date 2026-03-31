@@ -16,6 +16,43 @@ import {
 
 import { roomManager } from "../room/RoomManager";
 
+import { GameError, RoomError } from "shared/errors/Error";
+
+function handleError(socket: any, err: any) {
+  if (err instanceof GameError || err instanceof RoomError) {
+    socket.emit("actionError", {
+      code: err.code,
+      message: err.message
+    });
+    return;
+  }
+
+  console.error(err);
+
+  socket.emit("actionError", {
+    code: "UNKNOWN_ERROR",
+    message: "予期しないエラーが発生しました"
+  });
+}
+
+function validateContext(roomId: string, playerId?: string) {
+  const room = roomManager.getRoom(roomId);
+  if (!room) {
+    throw new RoomError("ROOM_NOT_FOUND", "ルームが存在しません");
+  }
+
+  let player;
+
+  if (playerId) {
+    player = room.players.find((p: any) => p.id === playerId);
+    if (!player) {
+      throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが存在しません");
+    }
+  }
+
+  return { room, player };
+}
+
 function handleAction(
   io: any,
   socket: any,
@@ -24,9 +61,8 @@ function handleAction(
 ) {
 
   try {
-    const room = roomManager.getRoom(roomId)
-    if (!room) return
-    const config = room.config
+    const { room } = validateContext(roomId);
+    const config = room.config;
 
     const gameState = roomManager.getGameState(roomId);
 
@@ -56,12 +92,17 @@ function handleAction(
     io.to(roomId).emit("gameStateUpdate", gameState);
 
   } catch (err: any) {
+    if (err instanceof RoomError) {
+      // ルーム崩壊 → 全員強制退出
+      roomManager.deleteRoom(roomId);
+      io.to(roomId).emit("forceExitRoom", {
+        code: err.code,
+        message: err.message
+      });
+      return;
+    }
 
-    socket.emit("actionError", {
-      code: "INVALID_ACTION",
-      message: err.message
-    });
-
+    handleError(socket, err);
   }
 
 }
@@ -80,17 +121,14 @@ export function createSocketServer(httpServer: any) {
 
     // 再接続処理
     socket.on("reconnectPlayer", ({ roomId, playerId }) => {
-      const room = roomManager.getRoom(roomId);
-
-      if (!room) return;
-
+      const { room, player } = validateContext(roomId, playerId)
+      
       // 🔥 切断タイマーをキャンセル（リロード復帰対応）
       if (roomManager.clearDisconnectTimeout) {
         roomManager.clearDisconnectTimeout(playerId);
       }
 
       // socketId を更新
-      const player = room.players.find(p => p.id === playerId);
       console.log(player)
       if (player) {
         player.socketId = socket.id;
@@ -179,10 +217,7 @@ export function createSocketServer(httpServer: any) {
 
         socket.emit("gameStateUpdate", gameState);
       } catch (err: any) {
-        socket.emit("actionError", {
-          code: "STATE_FETCH_ERROR",
-          message: err.message
-        });
+        handleError(socket, err);
       }
     });
 
@@ -195,7 +230,7 @@ export function createSocketServer(httpServer: any) {
         
         const room = roomManager.getRoom(roomId);
         console.log(room)
-        if (!room) throw new Error("ROOM_NOT_FOUND");
+        if (!room) throw new RoomError("ROOM_NOT_FOUND", "ルームが存在しません");
         
         console.log("② room OK");
         
@@ -223,12 +258,7 @@ export function createSocketServer(httpServer: any) {
         io.to(roomId).emit("gameStarted", gameState);
         io.to(roomId).emit("gameStateUpdate", gameState);
       } catch (err: any) {
-
-        socket.emit("actionError", {
-          code: "INVALID_ACTION",
-          message: err.message
-        });
-
+        handleError(socket, err);
       }
 
     });

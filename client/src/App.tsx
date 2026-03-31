@@ -12,7 +12,8 @@ import { api } from "./api/apiClient"
 import { socketClient } from "./socket/socketClient"
 
 import { useGameConfig } from "./context/GameConfigContext"
-
+import { isRoomError } from "shared/errors/errorCodes"
+import { Modal } from "./components/ui/Modal"
 
 type RoomStatus = "waiting" | "playing" | null
 
@@ -28,6 +29,8 @@ export default function App() {
   const [name, setName] = useState("")
   const [isHost, setIsHost] = useState(false)
 
+  const [error, setError] = useState<string | null>(null)
+    
   const { config } = useGameConfig()
   
 
@@ -73,6 +76,46 @@ export default function App() {
       }
     }
   }, [])
+
+  // エラー
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const handler = (payload: { code: string; message: string }) => {
+      if (!isRoomError(payload.code)) return;
+
+      setError(payload.message);
+
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
+      timeout = setTimeout(() => {
+        socketClient.leaveRoom(roomId);
+
+        // セッションリセット
+        sessionStorage.removeItem("roomId");
+        sessionStorage.removeItem("playerId");
+        sessionStorage.removeItem("isHost");
+        sessionStorage.removeItem("roomStatus");
+
+        setRoomId("");
+        setPlayerId("");
+        setIsHost(false);
+        setRoomStatus(null);
+
+        setError(null);
+      }, 2000);
+    };
+
+    socketClient.onForceExitRoom(handler);
+
+    return () => {
+      socketClient.offForceExitRoom(handler);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [roomId]);
 
   // ルーム作成
   const handleCreateRoom = async () => {
@@ -179,6 +222,20 @@ export default function App() {
       </DragProvider>
     )
   }
+  
+  <Modal isOpen={!!error}>
+    <div className="flex flex-col items-center gap-4">
+      <div className="text-red-400 text-lg font-bold">
+        エラー
+      </div>
+      <div className="text-center">
+        {error}
+      </div>
+      <div className="text-center">
+        2秒後にホームに戻ります
+      </div>
+    </div>
+  </Modal>
 
   return null
 }

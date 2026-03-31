@@ -1,5 +1,6 @@
 import { GameState, GameConfig, defaultGameConfig } from "shared/types";
 import { createGameState } from "../state/createGameState";
+import { RoomError } from "shared/errors/Error";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
 
@@ -24,7 +25,7 @@ export class RoomManager {
 
   createRoom(roomId: string, hostId: string, socketId: string, name: string): Room {
     if (this.rooms.has(roomId)) {
-      throw new Error("ROOM_ALREADY_EXISTS");
+      throw new RoomError("ROOM_ALREADY_EXISTS", "そのルームはすでに作られています");
     }
 
     const room: Room = {
@@ -46,7 +47,7 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
 
     if (!room) {
-      throw new Error("ROOM_NOT_FOUND");
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");
     }
 
     const existing = room.players.find(p => p.id === playerId);
@@ -60,11 +61,11 @@ export class RoomManager {
 
     // 🔥 ここから先は新規参加のみ
     if (room.status !== "waiting") {
-      throw new Error("GAME_ALREADY_STARTED");
+      throw new RoomError("GAME_ALREADY_STARTED", "ゲームはすでに開始されています");
     }
 
     if (room.players.length >= 4) {
-      throw new Error("ROOM_FULL");
+      throw new RoomError("ROOM_FULL", "ルームの参加上限に達しています");
     }
 
     room.players.push({ id: playerId, name, socketId });
@@ -123,17 +124,17 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
 
     if (!room) {
-      throw new Error("ROOM_NOT_FOUND");
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");;
     }
 
     room.config = config
 
     if (room.players.length < 2) {
-      throw new Error("NOT_ENOUGH_PLAYERS");
+      throw new RoomError("NOT_ENOUGH_PLAYERS", "プレイヤーが足りません");
     }
 
     if (room.status !== "waiting") {
-      throw new Error("GAME_ALREADY_STARTED");
+      throw new RoomError("GAME_ALREADY_STARTED", "ゲームはすでに開始されています");
     }
 
 
@@ -176,11 +177,11 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
 
     if (!room) {
-      throw new Error("ROOM_NOT_FOUND");
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");;
     }
 
     if (!room.gameState) {
-      throw new Error("GAME_NOT_STARTED");
+      throw new RoomError("GAME_NOT_STARTED", "ゲームを開始できませんでした");
     }
 
     return room.gameState;
@@ -190,7 +191,7 @@ export class RoomManager {
     const room = this.rooms.get(roomId)
 
     if (!room) {
-      throw new Error("ROOM_NOT_FOUND")
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");
     }
 
     room.gameState = gameState
@@ -208,7 +209,7 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
 
     if (!room) {
-      throw new Error("ROOM_NOT_FOUND");
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");;
     }
 
     return room.players.map(p => p.id);

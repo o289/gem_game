@@ -1,6 +1,6 @@
 // server/src/game/actions/checkNobles.ts
 import { GameState, Noble } from "shared/types";
-import { GameError } from "shared/errors/GameError";
+import { RoomError } from "shared/errors/Error";
 
 
 function canVisitNoble(player: any, noble: Noble) {
@@ -25,7 +25,7 @@ export function checkNobles(
   const player = gameState.players.find(p => p.id === playerId);
 
   if (!player) {
-    throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
   for (const noble of gameState.nobles) {
@@ -40,7 +40,6 @@ export function checkNobles(
         n => n.id !== noble.id
       );
 
-      console.log("ノベルを獲得しました")
       return noble;
     }
   }

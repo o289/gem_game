@@ -1,6 +1,6 @@
 // server/src/game/actions/takeDifferentTokens.ts
 import { GameState, Color } from "shared/types";
-import { GameError } from "shared/errors/GameError"
+import { GameError, RoomError } from "shared/errors/Error"
 
 type Params = {
   playerId: string;
@@ -16,7 +16,7 @@ export function takeDifferentTokens(
   const player = gameState.players.find(p => p.id === playerId);
 
   if (!player) {
-    throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
   // 3色であること

@@ -217,6 +217,18 @@ class SocketClient {
 
   }
 
+  onForceExitRoom(callback: (payload: { code: string; message: string }) => void) {
+    this.socket.on("forceExitRoom", callback);
+  }
+
+  offForceExitRoom(callback?: (payload: { code: string; message: string }) => void) {
+    if (callback) {
+      this.socket.off("forceExitRoom", callback);
+    } else {
+      this.socket.off("forceExitRoom");
+    }
+  }
+
 }
 
 export const socketClient = new SocketClient();

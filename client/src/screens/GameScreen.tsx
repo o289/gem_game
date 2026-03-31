@@ -17,6 +17,7 @@ import { CardData } from '../components/Card'
 
 import { Card } from 'shared/types'
 import { useAssets } from '../hooks/useAssets'
+import { isGameError } from "shared/errors/errorCodes";
 
 type GameScreenProps = {
   roomId: string
@@ -74,6 +75,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
 
   useEffect(() => {
     socketClient.onActionError((err) => {
+      
+      if (!isGameError(err.code)) return;
+
       setError(err.message)
 
       // 自動クローズ
@@ -319,7 +323,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
         <Modal isOpen={!!error}>
           <div className="flex flex-col items-center gap-4">
             <div className="text-red-400 text-lg font-bold">
-              エラー
+              無効なアクション
             </div>
             <div className="text-center">
               {error}

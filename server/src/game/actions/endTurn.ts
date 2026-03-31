@@ -1,6 +1,6 @@
 // server/src/game/actions/endTurn.ts
 import { GameState, GameConfig } from "shared/types";
-import { GameError } from "shared/errors/GameError";
+import { RoomError } from "shared/errors/Error";
 
 export function endTurn(
   gameState: GameState,
@@ -11,7 +11,7 @@ export function endTurn(
   const player = gameState.players.find(p => p.id === playerId);
 
   if (!player) {
-    throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
   // 勝利条件チェック（config対応）

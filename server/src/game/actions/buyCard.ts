@@ -1,6 +1,6 @@
 // server/src/game/actions/buyCard.ts
 import { GameState, Player, Card, Color, TokenColor, TokenSet } from "shared/types";
-import { GameError } from "shared/errors/GameError";
+import { GameError, RoomError } from "shared/errors/Error";
 
 
 // 
@@ -152,7 +152,7 @@ export function buyCard(
   const player = gameState.players.find(p => p.id === playerId);
 
   if (!player) {
-    throw new GameError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
   }
 
   // カード取得

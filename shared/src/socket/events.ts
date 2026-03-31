@@ -66,12 +66,12 @@ export type ClientToServerEvents = {
 
   startGame: (payload: StartGamePayload) => void;
   resetGame: (data: {roomId: string}) => void
-
   
   takeTokens: (payload: TakeTokensPayload) => void;
 
   reserveCard: (payload: ReserveCardPayload) => void;
   buyCard: (payload: BuyCardPayload) => void;
+
 
   getGameState: (data: { roomId: string }) => void;
 };
@@ -86,6 +86,8 @@ export type ServerToClientEvents = {
   gameStateUpdate: (state: GameState) => void;
 
   gameEnded: (payload: GameEndedPayload) => void;
+
+  forceExitRoom: (payload: ActionErrorPayload) => void
 
   actionError: (error: ActionErrorPayload) => void;
 
