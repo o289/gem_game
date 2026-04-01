@@ -31,6 +31,7 @@ export default function App() {
   const [playerId, setPlayerId] = useState("")
   const [name, setName] = useState("")
   const [isHost, setIsHost] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
     
@@ -50,6 +51,7 @@ export default function App() {
     socketClient.onGameStarted((state) => {
       setGameState(state)
       setRoomStatus("playing")
+      setIsStarting(false)
     })
 
     return () => {
@@ -215,6 +217,7 @@ export default function App() {
   // ゲーム開始
   const startGame = () => {
     try {
+      setIsStarting(true)
       socketClient.startGame(roomId, config)
     } catch (err) {
       console.error("startGame error:", err)
@@ -235,31 +238,37 @@ export default function App() {
 
   if (roomStatus === "waiting") {
     return (
-      <WaitingScreen
-        roomId={roomId}
-        roomPlayers={roomPlayers}
-        playerId={playerId}
-        hostId={hostId}
-        isHost={isHost}
-        startGame={startGame}
-        handleLeaveRoom={handleLeaveRoom}
-      />
+      <>
+        {isStarting && <LoadingScreen type="initial" />}
+
+        <WaitingScreen
+          roomId={roomId}
+          roomPlayers={roomPlayers}
+          playerId={playerId}
+          hostId={hostId}
+          isHost={isHost}
+          startGame={startGame}
+          handleLeaveRoom={handleLeaveRoom}
+        />
+      </>
     )
   }
 
   if (roomStatus === "playing") {
-    if (!isReady) {
-      return <LoadingScreen />
-    }
-
     return (
-      <DragProvider>
-        <GameProvider gameState={gameState} setGameState={setGameState} myPlayerId={playerId} roomId={roomId}>
-          <TokenProvider>
-            <GameScreen roomId={roomId}/>
-          </TokenProvider>
-        </GameProvider>
-      </DragProvider>
+      <>
+        {!isReady && (
+          <LoadingScreen type="reconnect" />
+        )}
+
+        <DragProvider>
+          <GameProvider gameState={gameState} setGameState={setGameState} myPlayerId={playerId} roomId={roomId}>
+            <TokenProvider>
+              <GameScreen roomId={roomId}/>
+            </TokenProvider>
+          </GameProvider>
+        </DragProvider>
+      </>
     )
   }
   

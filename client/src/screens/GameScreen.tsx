@@ -101,8 +101,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
     <div 
       className="flex flex-col h-dvh w-full bg-gradient-to-br from-zinc-900 via-neutral-800 to-zinc-900 text-white select-none pb-[env(safe-area-inset-bottom)] overflow-hidden touch-none"
     >
-      
-
       <div className={`flex flex-col flex-1 bg-white/5 backdrop-blur-md p-2 relative`}>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-60" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] bg-[length:6px_6px]" />
@@ -127,8 +125,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
             🃏
           </button>
         </div>
-
-
         
         {/* ボード */}
         <Board
