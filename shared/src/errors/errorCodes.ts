@@ -19,6 +19,8 @@ export const ROOM_ERROR_CODES = [
   "GAME_ALREADY_STARTED",
   "NOT_ENOUGH_PLAYERS",
   "GAME_NOT_STARTED",
+  "ALREADY_JOINED",
+  "STATE_MISMATCH"
 ] as const;
 
 export function isRoomError(code: string): code is typeof ROOM_ERROR_CODES[number] {

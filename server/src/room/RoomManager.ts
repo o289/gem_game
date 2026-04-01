@@ -21,7 +21,7 @@ export type Room = {
 
 export class RoomManager {
   private rooms = new Map<string, Room>();
-  private disconnectTimeouts = new Map<string, NodeJS.Timeout>();
+  private disconnectTimeouts = new Map<string, NodeJS.Timeout>(); // key: `${roomId}:${playerId}`
 
   createRoom(roomId: string, hostId: string, socketId: string, name: string): Room {
     if (this.rooms.has(roomId)) {
@@ -52,14 +52,12 @@ export class RoomManager {
 
     const existing = room.players.find(p => p.id === playerId);
 
-    // 🔥 再接続は最優先で処理（ゲーム中・満員でも許可）
+    // ❌ 重複参加は禁止（reconnectは別メソッドで処理）
     if (existing) {
-      existing.socketId = socketId;
-      existing.name = name;
-      return room;
+      throw new RoomError("ALREADY_JOINED", "すでにルームに参加しています");
     }
 
-    // 🔥 ここから先は新規参加のみ
+    // 🔥 新規参加のみ許可
     if (room.status !== "waiting") {
       throw new RoomError("GAME_ALREADY_STARTED", "ゲームはすでに開始されています");
     }
@@ -69,6 +67,25 @@ export class RoomManager {
     }
 
     room.players.push({ id: playerId, name, socketId });
+
+    return room;
+  }
+
+  updatePlayerSocket(roomId: string, playerId: string, socketId: string, name: string): Room {
+    const room = this.rooms.get(roomId);
+
+    if (!room) {
+      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");
+    }
+
+    const player = room.players.find(p => p.id === playerId);
+
+    if (!player) {
+      throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
+    }
+
+    player.socketId = socketId;
+    player.name = name;
 
     return room;
   }
@@ -95,19 +112,31 @@ export class RoomManager {
     this.rooms.delete(roomId);
   }
 
-  setDisconnectTimeout(playerId: string, timeout: NodeJS.Timeout) {
-    const existing = this.disconnectTimeouts.get(playerId);
+  assertPlayerInGame(roomId: string, playerId: string): void {
+    const gameState = this.getGameState(roomId);
+
+    const exists = gameState.players.find(p => p.id === playerId);
+
+    if (!exists) {
+      throw new RoomError("STATE_MISMATCH", "GameStateとプレイヤーが一致しません");
+    }
+  }
+
+  setDisconnectTimeout(roomId: string, playerId: string, timeout: NodeJS.Timeout) {
+    const key = `${roomId}:${playerId}`;
+    const existing = this.disconnectTimeouts.get(key);
     if (existing) {
       clearTimeout(existing);
     }
-    this.disconnectTimeouts.set(playerId, timeout);
+    this.disconnectTimeouts.set(key, timeout);
   }
 
-  clearDisconnectTimeout(playerId: string) {
-    const timeout = this.disconnectTimeouts.get(playerId);
+  clearDisconnectTimeout(roomId: string, playerId: string) {
+    const key = `${roomId}:${playerId}`;
+    const timeout = this.disconnectTimeouts.get(key);
     if (timeout) {
       clearTimeout(timeout);
-      this.disconnectTimeouts.delete(playerId);
+      this.disconnectTimeouts.delete(key);
     }
   }
 
@@ -229,3 +258,4 @@ export class RoomManager {
 }
 
 export const roomManager = new RoomManager()
+  

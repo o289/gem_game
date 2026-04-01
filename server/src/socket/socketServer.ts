@@ -119,46 +119,11 @@ export function createSocketServer(httpServer: any) {
 
     console.log("player connected", socket.id);
 
-    // 再接続処理
-    socket.on("reconnectPlayer", ({ roomId, playerId }) => {
-      const { room, player } = validateContext(roomId, playerId)
-      
-      // 🔥 切断タイマーをキャンセル（リロード復帰対応）
-      if (roomManager.clearDisconnectTimeout) {
-        roomManager.clearDisconnectTimeout(playerId);
-      }
-
-      // socketId を更新
-      console.log(player)
-      if (player) {
-        player.socketId = socket.id;
-      }
-
-      socket.join(roomId);
-
-      console.log("player reconnected", playerId, socket.id);
-
-      // 現在のゲーム状態を再送
-      try {
-        const gameState = roomManager.getGameState(roomId);
-
-        socket.emit("gameStateUpdate", gameState);
-      } catch {
-        // ゲームがまだ開始されていない場合
-        socket.emit("roomUpdate", {
-          players: room.players,
-          hostId: room.hostId,
-          status: room.status
-        });
-      }
-
-    });
-
     // ルーム参加
     socket.on("joinRoom", ({ roomId, playerId, name }) => {
 
       // 🔥 再接続時の削除予約をキャンセル
-      roomManager.clearDisconnectTimeout?.(playerId);
+      roomManager.clearDisconnectTimeout?.(roomId, playerId);
 
       let room = roomManager.getRoom(roomId);
 
@@ -169,12 +134,24 @@ export function createSocketServer(httpServer: any) {
       } else {
         // 🔥 既存プレイヤーか判定（reconnect）
         const existing = room.players.find(p => p.id === playerId);
+
         if (existing) {
           isReconnect = true;
+
+          // reconnect処理
+          roomManager.updatePlayerSocket(roomId, playerId, socket.id, name);
+
+          // 🔥 GameState整合チェック（ゲーム中のみ）
+          if (room.status === "playing") {
+            roomManager.assertPlayerInGame(roomId, playerId);
+          }
+
+        } else {
+          // 新規参加
+          roomManager.joinRoom(roomId, playerId, socket.id, name);
         }
 
-        roomManager.joinRoom(roomId, playerId, socket.id, name);
-        room = roomManager.getRoom(roomId)!; // 最新状態を取得
+        room = roomManager.getRoom(roomId)!;
       }
 
       socket.join(roomId);
@@ -416,7 +393,7 @@ export function createSocketServer(httpServer: any) {
             io.to(roomId).emit("roomClosed");
           }, 10000);
 
-          roomManager.setDisconnectTimeout(playerId, timeout);
+          roomManager.setDisconnectTimeout(roomId, playerId, timeout);
           continue;
         }
 
@@ -450,7 +427,7 @@ export function createSocketServer(httpServer: any) {
         }, 5000);
 
         // タイマー登録（reconnectでキャンセル用）
-        roomManager.setDisconnectTimeout(playerId, timeout);
+        roomManager.setDisconnectTimeout(roomId, playerId, timeout);
       }
     });
 
