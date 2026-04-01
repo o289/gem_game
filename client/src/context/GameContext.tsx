@@ -1,6 +1,16 @@
 import { createContext, useContext, ReactNode, useState } from "react";
 import React from "react";
-import { GameState, Player, Card, Color } from "shared/types";
+import { GameState, Player, Card, Color, TokenSet } from "shared/types";
+
+
+type buyCardSource = 'market' | 'reserved'
+
+type ActionState =
+  | { type: 'none' }
+  | { type: 'card_selected'; card: Card; source: buyCardSource }
+  | { type: 'payment_selecting', card: Card, source: buyCardSource }
+  | { type: 'token_selecting' }
+
 
 type GameContextType = {
   gameState: GameState | null;
@@ -28,12 +38,6 @@ type Props = {
   myPlayerId: string;
   roomId: string;
 };
-
-type ActionState =
-  | { type: 'none' }
-  | { type: 'card_selected'; card: Card; source: 'market' | 'reserved' }
-  | { type: 'token_selecting' }
-
 
 export const GameProvider = ({
   children,

@@ -5,7 +5,7 @@ import {
   ServerToClientEvents
 } from "shared/socket/events"
 
-import { GameConfig, GameState } from "shared/types";
+import { GameConfig, GameState, TokenSet } from "shared/types";
 
 class SocketClient {
 
@@ -138,12 +138,13 @@ class SocketClient {
 
   }
 
-  buyCard(roomId: string, playerId: string, cardId: string) {
+  buyCard(roomId: string, playerId: string, cardId: string, payment?: TokenSet) {
 
     this.socket.emit("buyCard", {
       roomId,
       playerId,
-      cardId
+      cardId,
+      payment
     });
 
   }

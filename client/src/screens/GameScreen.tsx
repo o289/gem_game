@@ -138,8 +138,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                 <button
                   className={`px-3 py-1 rounded ${isMyTurn ? 'bg-green-500' : 'bg-gray-500'}`}
                   onClick={() => {
-                    socketClient.buyCard(roomId, myPlayerId, actionState.card.id)
-                    setActionState({ type: 'none' })
+                    setActionState({
+                        type: "payment_selecting",
+                        card: actionState.card,
+                        source: actionState.source
+                      })
                   }}
                   disabled={!isMyTurn}
                 >
@@ -162,6 +165,146 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                   onClick={() => setActionState({ type: 'none' })}
                 >
                   やめる
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        <Modal isOpen={actionState.type === 'payment_selecting'}>
+          {actionState.type === 'payment_selecting' && (
+            <div className="flex flex-col gap-4">
+              <div className="text-lg font-bold">支払い選択</div>
+
+              {/* カード表示 */}
+              <div className="flex justify-center">
+                <div className="w-[100px] h-[140px] border flex items-center justify-center">
+                  <CardData card={actionState.card} />
+                </div>
+              </div>
+
+              {/* 支払いUI */}
+              <div className="flex flex-col gap-2">
+                {Object.keys(myPlayer.tokens).map((color) => {
+                  const owned = myPlayer.tokens[color as keyof typeof myPlayer.tokens]
+                  const cost = actionState.card.cost[color as keyof typeof actionState.card.cost] ?? 0
+                  const bonus = myPlayer.bonuses[color as keyof typeof myPlayer.bonuses] ?? 0
+                  const required = Math.max(cost - bonus, 0)
+                  const current = (actionState as any).payment?.[color] ?? 0
+                  const remaining = Math.max(required - current, 0)
+
+                  return (
+                    <div key={color} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <img src={`/img/${color}.png`} className="w-6 h-6" />
+                        <span>x{owned}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={current <= 0}
+                          className={`px-2 py-1 rounded ${current <= 0 ? 'bg-gray-400' : 'bg-gray-600'}`}
+                          onClick={() => {
+                            setActionState((prev: any) => {
+                              const payment = prev.payment ?? {
+                                emerald: 0,
+                                diamond: 0,
+                                sapphire: 0,
+                                onyx: 0,
+                                ruby: 0,
+                                gold: 0,
+                              }
+
+                              if (payment[color] <= 0) return prev
+
+                              return {
+                                ...prev,
+                                payment: {
+                                  ...payment,
+                                  [color]: payment[color] - 1,
+                                },
+                              }
+                            })
+                          }}
+                        >
+                          -
+                        </button>
+
+                        <div className="w-6 text-center">
+                          {current}
+                        </div>
+
+                        <button
+                          disabled={current >= owned || (color !== 'gold' && current >= required)}
+                          className={`px-2 py-1 rounded ${current >= owned || (color !== 'gold' && current >= required) ? 'bg-gray-400' : 'bg-blue-600'}`}
+                          onClick={() => {
+                            setActionState((prev: any) => {
+                              const payment = prev.payment ?? {
+                                emerald: 0,
+                                diamond: 0,
+                                sapphire: 0,
+                                onyx: 0,
+                                ruby: 0,
+                                gold: 0,
+                              }
+
+                              if (payment[color] >= owned) return prev
+                              if (color !== 'gold' && payment[color] >= required) return prev
+
+                              return {
+                                ...prev,
+                                payment: {
+                                  ...payment,
+                                  [color]: payment[color] + 1,
+                                },
+                              }
+                            })
+                          }}
+                        >
+                          +
+                        </button>
+
+                        <div className={`text-sm text-red-300 w-12 text-center ${color === 'gold' ? 'invisible' : ''}`}>
+                          {remaining}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* ボタン */}
+              <div className="flex gap-2 justify-center">
+                <button
+                  className="px-3 py-1 bg-green-500 rounded"
+                  onClick={() => {
+                    socketClient.buyCard(
+                      roomId,
+                      myPlayerId,
+                      actionState.card.id,
+                      (actionState as any).payment
+                    )
+                    setActionState({ type: 'none' })
+                  }}
+                >
+                  購入
+                </button>
+
+                <button
+                  className="px-3 py-1 bg-gray-500 rounded"
+                  onClick={() => setActionState({ type: 'none' })}
+                >
+                  キャンセル
+                </button>
+
+                <button
+                  className="px-3 py-1 bg-yellow-500 rounded"
+                  onClick={() => {
+                    socketClient.buyCard(roomId, myPlayerId, actionState.card.id)
+                    setActionState({ type: 'none' })
+                  }}
+                >
+                  オート
                 </button>
               </div>
             </div>
@@ -296,7 +439,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                             }`}
                             onClick={() => {
                               if (targetPlayer.id !== myPlayerId) return
-                              setActionState({ type: 'card_selected', card, source: 'reserved' })
+                              setActionState({ type: 'payment_selecting', card, source: 'reserved' })
                               setShowMyInfo(false)
                             }}
                           >

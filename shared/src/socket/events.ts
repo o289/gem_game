@@ -1,11 +1,12 @@
 // shared/src/socket/events.ts
 
-import { GameState, GameConfig } from "../types";
+import { GameState, GameConfig, TokenSet } from "../types";
 
 // -----------------------------
 // Payload Types
 // -----------------------------
 
+// **ルームアクション** 
 export type JoinRoomPayload = {
   roomId: string;
   playerId: string;
@@ -26,12 +27,22 @@ export type ReconnectPlayerPayload = {
   playerId: string;
 }
 
+export type GameEndedPayload = {
+  winnerId: string;
+  finalState: GameState;
+};
+
+export type ActionErrorPayload = {
+  code: string;
+  message: string;
+};
+
+// **ゲームアクション** 
 export type TakeTokensPayload = {
   roomId: string;
   playerId: string;
   tokens: string[];
 };
-
 
 export type ReserveCardPayload = {
   roomId: string;
@@ -42,18 +53,11 @@ export type ReserveCardPayload = {
 export type BuyCardPayload = {
   roomId: string;
   playerId: string;
+  payment?: TokenSet; 
   cardId: string;
 };
 
-export type GameEndedPayload = {
-  winnerId: string;
-  finalState: GameState;
-};
 
-export type ActionErrorPayload = {
-  code: string;
-  message: string;
-};
 
 // -----------------------------
 // Client -> Server

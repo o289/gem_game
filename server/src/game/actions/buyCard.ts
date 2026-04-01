@@ -27,8 +27,54 @@ function findCard(
 
   return null;
 }
+//　手動支払い
+function validateManualPayment(
+  player: Player,
+  card: Card,
+  payment: TokenSet
+): TokenSet  {
+  const colors: Color[] = ["emerald","diamond","sapphire","onyx","ruby"];
 
-// 
+  let goldNeeded = 0;
+
+  for (const color of colors) {
+    const cost = card.cost[color];
+    const bonus = player.bonuses[color];
+
+    const required = Math.max(cost - bonus, 0);
+    const paid = payment[color];
+
+    // 所持チェック
+    if (paid > player.tokens[color]) {
+      throw new GameError("INVALID_PAYMENT", "トークンが不足しています");
+    }
+
+    // 払いすぎチェック
+    if (paid > required) {
+      throw new GameError("INVALID_PAYMENT", "払いすぎです");
+    }
+
+    const remaining = required - paid;
+
+    if (remaining > 0) {
+      goldNeeded += remaining;
+    }
+  }
+
+  // goldチェック
+  if (payment.gold > player.tokens.gold) {
+    throw new GameError("INVALID_PAYMENT", "ゴールドが不足しています");
+  }
+
+  if (goldNeeded > payment.gold) {
+    throw new GameError("INVALID_PAYMENT", "支払いが不足しています");
+  }
+
+  return payment;
+}
+
+
+// 自動支払い
 function calculatePayment(player: Player, card: Card) {
 
   const payment: TokenSet = {
@@ -141,6 +187,7 @@ function refillMarket(
 type Params = {
   playerId: string;
   cardId: string;
+  payment?: TokenSet;
 };
 
 export function buyCard(
@@ -165,7 +212,9 @@ export function buyCard(
   const { card, source, level } = result;
 
   // 支払い計算
-  const payment = calculatePayment(player, card);
+  const payment = params.payment
+    ? validateManualPayment(player, card, params.payment)
+    : calculatePayment(player, card);
 
   // 支払い実行
   applyPayment(gameState, player, payment);

@@ -1,6 +1,5 @@
 // server/src/socket/socketServer.ts
 import { createDecks } from "../state/createDecks";
-import { GameConfig } from "shared/types";
 import { Server } from "socket.io";
 
 import {
@@ -316,7 +315,8 @@ export function createSocketServer(httpServer: any) {
 
         buyCard(gameState, {
           playerId: payload.playerId,
-          cardId: payload.cardId
+          cardId: payload.cardId,
+          payment: payload.payment
         });
 
       });
