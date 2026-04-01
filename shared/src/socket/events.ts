@@ -28,11 +28,6 @@ export type StartGamePayload = {
   config: GameConfig
 };
 
-export type ReconnectPlayerPayload = {
-  roomId: string;
-  playerId: string;
-}
-
 export type GameEndedPayload = {
   winnerId: string;
   finalState: GameState;
@@ -80,7 +75,6 @@ export type BuyCardPayload = {
 export type ClientToServerEvents = {
   joinRoom: (payload: JoinRoomPayload) => void;
   leaveRoom: (payload: LeaveRoomPayload) => void;
-  reconnectPlayer: (payload: ReconnectPlayerPayload) => void;
 
   startGame: (payload: StartGamePayload) => void;
   resetGame: (data: {roomId: string}) => void

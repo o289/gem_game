@@ -52,9 +52,15 @@ export class RoomManager {
 
     const existing = room.players.find(p => p.id === playerId);
 
-    // ❌ 重複参加は禁止（reconnectは別メソッドで処理）
+    // 🔥 reconnect対応
     if (existing) {
-      throw new RoomError("ALREADY_JOINED", "すでにルームに参加しています");
+      existing.socketId = socketId;
+      existing.name = name;
+
+      // 🔥 disconnectタイマー解除
+      this.clearDisconnectTimeout(roomId, playerId);
+
+      return room;
     }
 
     // 🔥 新規参加のみ許可
@@ -71,24 +77,6 @@ export class RoomManager {
     return room;
   }
 
-  updatePlayerSocket(roomId: string, playerId: string, socketId: string, name: string): Room {
-    const room = this.rooms.get(roomId);
-
-    if (!room) {
-      throw new RoomError("ROOM_NOT_FOUND", "部屋が見つかりません");
-    }
-
-    const player = room.players.find(p => p.id === playerId);
-
-    if (!player) {
-      throw new RoomError("PLAYER_NOT_FOUND", "プレイヤーが見つかりません");
-    }
-
-    player.socketId = socketId;
-    player.name = name;
-
-    return room;
-  }
 
   leaveRoom(roomId: string, playerId: string): void {
     const room = this.rooms.get(roomId);
@@ -258,4 +246,3 @@ export class RoomManager {
 }
 
 export const roomManager = new RoomManager()
-  

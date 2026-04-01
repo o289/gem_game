@@ -16,7 +16,6 @@ import { useTokenContext } from '../context/TokenContext'
 import { CardData } from '../components/Card'
 
 import { Card } from 'shared/types'
-import { useAssets } from '../hooks/useAssets'
 import { isGameError } from "shared/errors/errorCodes";
 import { playSound } from 'src/util/sound'
 
@@ -29,7 +28,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   // ===== データ ===== 
   const { gameState, setGameState, myPlayerId, isMyTurn, myPlayer, actionState, setActionState } = useGameContext()
   const { resetTokens, selectedTokens } = useTokenContext()
-  const assetsLoaded = useAssets()
   const decks = gameState?.decks
   const levels = [1, 2, 3] as const
   
@@ -40,8 +38,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   const [error, setError] = useState<string | null>(null)
   const [showTurnModal, setShowTurnModal] = useState(false)
   const [prevTurn, setPrevTurn] = useState<number | null>(null)
-  
-  
+
   // ===== UI =====
   useEffect(() => {
     api.get(`/room/${roomId}/game`)
@@ -97,15 +94,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   }, [])
 
 
-  if (!gameState || !assetsLoaded) return <div className='flex flex-col items-center justify-center min-h-dvh px-4 gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white'>Loading...</div>;
+  
 
 
   return (
     <div 
       className="flex flex-col h-dvh w-full bg-gradient-to-br from-zinc-900 via-neutral-800 to-zinc-900 text-white select-none pb-[env(safe-area-inset-bottom)] overflow-hidden touch-none"
     >
+      
 
-      <div className="flex flex-col flex-1 bg-white/5 backdrop-blur-md p-2 relative">
+      <div className={`flex flex-col flex-1 bg-white/5 backdrop-blur-md p-2 relative`}>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-60" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] bg-[length:6px_6px]" />
         

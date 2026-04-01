@@ -21,7 +21,6 @@ export function useGameState() {
 
   useEffect(() => {
 
-    socketClient.connect();
 
     socketClient.onGameStarted((state) => {
 
@@ -53,11 +52,6 @@ export function useGameState() {
 
     });
 
-    return () => {
-
-      socketClient.disconnect();
-
-    };
 
   }, []);
 

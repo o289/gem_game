@@ -132,23 +132,14 @@ export function createSocketServer(httpServer: any) {
       if (!room) {
         room = roomManager.createRoom(roomId, playerId, socket.id, name);
       } else {
-        // 🔥 既存プレイヤーか判定（reconnect）
-        const existing = room.players.find(p => p.id === playerId);
+        const wasExisting = room.players.some(p => p.id === playerId);
 
-        if (existing) {
-          isReconnect = true;
+        roomManager.joinRoom(roomId, playerId, socket.id, name);
 
-          // reconnect処理
-          roomManager.updatePlayerSocket(roomId, playerId, socket.id, name);
+        isReconnect = wasExisting;
 
-          // 🔥 GameState整合チェック（ゲーム中のみ）
-          if (room.status === "playing") {
-            roomManager.assertPlayerInGame(roomId, playerId);
-          }
-
-        } else {
-          // 新規参加
-          roomManager.joinRoom(roomId, playerId, socket.id, name);
+        if (room.status === "playing") {
+          roomManager.assertPlayerInGame(roomId, playerId);
         }
 
         room = roomManager.getRoom(roomId)!;
@@ -158,23 +149,30 @@ export function createSocketServer(httpServer: any) {
 
       // 🔥 ゲーム状態に応じて適切なイベントを送信
       if (room.status === "playing") {
-        try {
-          const gameState = roomManager.getGameState(roomId);
+        const trySendGameState = () => {
+          try {
+            const gameState = roomManager.getGameState(roomId);
 
-          // reconnect時は個別に状態復元
-          if (isReconnect) {
-            socket.emit("gameStateUpdate", gameState);
-          } else {
-            io.to(roomId).emit("gameStateUpdate", gameState);
+            if (isReconnect) {
+              socket.emit("gameStateUpdate", gameState);
+            } else {
+              io.to(roomId).emit("gameStateUpdate", gameState);
+            }
+          } catch (err) {
+            // 🔥 非同期順序ズレ対策：少し待って再試行
+            setTimeout(trySendGameState, 100);
           }
-        } catch {
-          // fallback
-          io.to(roomId).emit("roomUpdate", {
-            players: room.players,
-            hostId: room.hostId,
-            status: room.status
-          });
-        }
+        };
+
+        trySendGameState();
+
+        // 🔥 playing中でもroom情報を同期
+        socket.emit("roomUpdate", {
+          players: room.players,
+          hostId: room.hostId,
+          status: room.status
+        });
+
       } else {
         io.to(roomId).emit("roomUpdate", {
           players: room.players,
@@ -234,6 +232,16 @@ export function createSocketServer(httpServer: any) {
         
         io.to(roomId).emit("gameStarted", gameState);
         io.to(roomId).emit("gameStateUpdate", gameState);
+
+        // 🔥 ゲーム開始時にroom情報も同期
+        const updatedRoom = roomManager.getRoom(roomId);
+        if (updatedRoom) {
+          io.to(roomId).emit("roomUpdate", {
+            players: updatedRoom.players,
+            hostId: updatedRoom.hostId,
+            status: updatedRoom.status
+          });
+        }
       } catch (err: any) {
         handleError(socket, err);
       }

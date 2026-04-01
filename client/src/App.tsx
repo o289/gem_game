@@ -14,6 +14,9 @@ import { socketClient } from "./socket/socketClient"
 import { useGameConfig } from "./context/GameConfigContext"
 import { isRoomError } from "shared/errors/errorCodes"
 import { Modal } from "./components/ui/Modal"
+import { LoadingScreen } from "./screens/LoadingScreen"
+import { useAssets } from "./hooks/useAssets"
+
 
 type RoomStatus = "waiting" | "playing" | null
 
@@ -32,7 +35,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
     
   const { config } = useGameConfig()
+  const assetLoaded = useAssets()
+
+  const me = gameState?.players?.find(p => p.id === playerId);
   
+    const isReady =
+    !!gameState &&
+    Array.isArray(gameState.players) &&
+    gameState.players.length > 0 &&
+    !!me &&
+    assetLoaded;
 
   useEffect(() => {
     socketClient.onGameStarted((state) => {
@@ -47,6 +59,13 @@ export default function App() {
 
   useEffect(() => {
     socketClient.onRoomUpdate((data) => {
+      console.log("*****")
+      console.log(data.players)
+      console.log(data.hostId)
+      console.log(data.status)
+      console.log("*****")
+
+
       setRoomPlayers(data.players)
       setHostId(data.hostId)
       setRoomStatus(data.status ?? null)
@@ -60,22 +79,37 @@ export default function App() {
   useEffect(() => {
     const savedRoomId = sessionStorage.getItem("roomId")
     const savedPlayerId = sessionStorage.getItem("playerId")
-    const savedStatus = sessionStorage.getItem("roomStatus") as RoomStatus
+    const savedName = sessionStorage.getItem("name")
     const savedIsHost = sessionStorage.getItem("isHost") === "true"
 
-    if (savedRoomId && savedPlayerId) {
+    if (savedRoomId && savedPlayerId && savedName) {
       console.log("🔄 reconnect", savedRoomId, savedPlayerId)
 
+      setName(savedName)
       setRoomId(savedRoomId)
       setPlayerId(savedPlayerId)
       setIsHost(savedIsHost)
 
-      socketClient.reconnectPlayer(savedRoomId, savedPlayerId)
-      if (savedStatus) {
-        setRoomStatus(savedStatus)
-      }
+      socketClient.joinRoom(savedRoomId, savedPlayerId, savedName)
     }
   }, [])
+
+  // ゲーム状態を元に戻す（playerId確定後にのみ適用）
+  useEffect(() => {
+    const handler = (state: GameState) => {
+
+      // 🔥 playerId未確定のときは無視
+      if (!playerId) return;
+
+      setGameState(state)
+    }
+
+    socketClient.onGameStateUpdate(handler)
+
+    return () => {
+      socketClient.offGameStateUpdate()
+    }
+  }, [playerId])
 
   // エラー
   useEffect(() => {
@@ -132,6 +166,7 @@ export default function App() {
     sessionStorage.setItem("playerId", data.playerId)
     sessionStorage.setItem("isHost", "true")
     sessionStorage.setItem("roomStatus", "waiting")
+    sessionStorage.setItem("name", name)
 
     socketClient.joinRoom(data.roomId, data.playerId, name)
 
@@ -155,6 +190,7 @@ export default function App() {
     sessionStorage.setItem("playerId", data.playerId)
     sessionStorage.setItem("isHost", "false")
     sessionStorage.setItem("roomStatus", "waiting")
+    sessionStorage.setItem("name", name)
 
     socketClient.joinRoom(data.roomId, data.playerId, name)
 
@@ -212,6 +248,10 @@ export default function App() {
   }
 
   if (roomStatus === "playing") {
+    if (!isReady) {
+      return <LoadingScreen />
+    }
+
     return (
       <DragProvider>
         <GameProvider gameState={gameState} setGameState={setGameState} myPlayerId={playerId} roomId={roomId}>
