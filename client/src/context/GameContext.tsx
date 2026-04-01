@@ -10,6 +10,7 @@ type ActionState =
   | { type: 'card_selected'; card: Card; source: buyCardSource }
   | { type: 'payment_selecting', card: Card, source: buyCardSource }
   | { type: 'token_selecting' }
+  | { type: 'deck_reserve_confirm', level: "level1" | "level2" | "level3" }
 
 
 type GameContextType = {

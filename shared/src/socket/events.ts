@@ -17,6 +17,12 @@ export type LeaveRoomPayload = {
   roomId: string;
 };
 
+type RoomUpdatePayload = {
+    players: { id: string; name: string }[];
+    hostId: string;
+    status: string;
+}
+
 export type StartGamePayload = {
   roomId: string;
   config: GameConfig
@@ -44,11 +50,19 @@ export type TakeTokensPayload = {
   tokens: string[];
 };
 
-export type ReserveCardPayload = {
-  roomId: string;
-  playerId: string;
-  cardId: string;
-};
+export type ReserveCardPayload =
+  | {
+      type: "market";
+      roomId: string;
+      playerId: string;
+      cardId: string;
+    }
+  | {
+      type: "deck";
+      roomId: string;
+      playerId: string;
+      level: "level1" | "level2" | "level3";
+    };
 
 export type BuyCardPayload = {
   roomId: string;
@@ -96,9 +110,5 @@ export type ServerToClientEvents = {
   actionError: (error: ActionErrorPayload) => void;
 
   // 🔥 追加：待機中のルーム情報更新
-  roomUpdate: (payload: {
-    players: { id: string; name: string }[];
-    hostId: string;
-    status: string
-  }) => void;
+  roomUpdate: (payload: RoomUpdatePayload) => void;
 };

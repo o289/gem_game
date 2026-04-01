@@ -18,6 +18,8 @@ import { CardData } from '../components/Card'
 import { Card } from 'shared/types'
 import { useAssets } from '../hooks/useAssets'
 import { isGameError } from "shared/errors/errorCodes";
+import { playSound } from 'src/util/sound'
+
 
 type GameScreenProps = {
   roomId: string
@@ -28,9 +30,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   const { gameState, setGameState, myPlayerId, isMyTurn, myPlayer, actionState, setActionState } = useGameContext()
   const { resetTokens, selectedTokens } = useTokenContext()
   const assetsLoaded = useAssets()
+  const decks = gameState?.decks
+  const levels = [1, 2, 3] as const
   
   // ===== 状態 =====
   const [showMyInfo, setShowMyInfo] = useState<string | false>(false)
+  const [showDeck, setShowDeck] = useState<boolean>(false)
   const [playerIndex, setPlayerIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [showTurnModal, setShowTurnModal] = useState(false)
@@ -104,21 +109,28 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 to-transparent opacity-60" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] bg-[length:6px_6px]" />
         
-        <button 
-          className="absolute top-2 right-2
-            w-10 h-10
-            bg-white/10
-            backdrop-blur
-            rounded-full
-            flex items-center justify-center" 
-          onClick={() => {
-            const index = gameState.players.findIndex(p => p.id === myPlayerId)
-            setPlayerIndex(index >= 0 ? index : 0)
-            setShowMyInfo(myPlayerId)
-          }}
-        >
-          📖
-        </button>
+        <div className="absolute top-2 right-2 flex flex-col gap-2">
+          <button
+            className="w-10 h-10 bg-white/10 backdrop-blur rounded-full flex items-center justify-center"
+            onClick={() => {
+              const index = gameState.players.findIndex(p => p.id === myPlayerId)
+              setPlayerIndex(index >= 0 ? index : 0)
+              setShowMyInfo(myPlayerId)
+            }}
+          >
+            📖
+          </button>
+          <button
+            className="w-10 h-10 bg-white/10 backdrop-blur rounded-full flex items-center justify-center"
+            onClick={() => {
+              setShowDeck(true)
+            }}
+          >
+            🃏
+          </button>
+        </div>
+
+
         
         {/* ボード */}
         <Board
@@ -126,10 +138,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
           nobles={gameState.nobles}
         />
 
+        {/* トークンエリア */}
         <TokenArea
           tokens={gameState.tokenPool}
         />
 
+        {/* アクションモーダル */}
         <Modal isOpen={actionState.type === 'card_selected'}>
           {actionState.type === 'card_selected' && (
             <div className="flex flex-col gap-4">
@@ -152,7 +166,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                   <button
                     className={`px-3 py-1 rounded ${isMyTurn ? 'bg-yellow-500' : 'bg-gray-500'}`}
                     onClick={() => {
-                      socketClient.reserveCard(roomId, myPlayerId, actionState.card.id)
+                      socketClient.reserveCard({type: "market", roomId, playerId: myPlayerId, cardId: actionState.card.id})
                       setActionState({ type: 'none' })
                     }}
                     disabled={!isMyTurn}
@@ -171,7 +185,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
           )}
         </Modal>
 
+        {/* 購入画面 */}
         <Modal isOpen={actionState.type === 'payment_selecting'}>
+          
           {actionState.type === 'payment_selecting' && (
             <div className="flex flex-col gap-4">
               <div className="text-lg font-bold">支払い選択</div>
@@ -202,8 +218,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
 
                       <div className="flex items-center gap-2">
                         <button
-                          disabled={current <= 0}
-                          className={`px-2 py-1 rounded ${current <= 0 ? 'bg-gray-400' : 'bg-gray-600'}`}
+                          disabled={!isMyTurn || current <= 0}
+                          className={`px-2 py-1 rounded ${current <= 0 || !isMyTurn ? 'bg-gray-400' : 'bg-gray-600'}`}
                           onClick={() => {
                             setActionState((prev: any) => {
                               const payment = prev.payment ?? {
@@ -235,8 +251,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                         </div>
 
                         <button
-                          disabled={current >= owned || (color !== 'gold' && current >= required)}
-                          className={`px-2 py-1 rounded ${current >= owned || (color !== 'gold' && current >= required) ? 'bg-gray-400' : 'bg-blue-600'}`}
+                          disabled={!isMyTurn || current >= owned || (color !== 'gold' && current >= required)}
+                          className={`px-2 py-1 rounded ${!isMyTurn || current >= owned || (color !== 'gold' && current >= required) ? 'bg-gray-400' : 'bg-blue-600'}`}
                           onClick={() => {
                             setActionState((prev: any) => {
                               const payment = prev.payment ?? {
@@ -276,7 +292,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
               {/* ボタン */}
               <div className="flex gap-2 justify-center">
                 <button
-                  className="px-3 py-1 bg-green-500 rounded"
+                  className={`px-3 py-1 rounded ${isMyTurn ? 'bg-green-500' : 'bg-gray-500'}`}
                   onClick={() => {
                     socketClient.buyCard(
                       roomId,
@@ -286,6 +302,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                     )
                     setActionState({ type: 'none' })
                   }}
+                  disabled={!isMyTurn}
                 >
                   購入
                 </button>
@@ -298,11 +315,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
                 </button>
 
                 <button
-                  className="px-3 py-1 bg-yellow-500 rounded"
+                  className={`px-3 py-1 rounded ${isMyTurn ? 'bg-yellow-500' : 'bg-gray-500'}`}
                   onClick={() => {
                     socketClient.buyCard(roomId, myPlayerId, actionState.card.id)
                     setActionState({ type: 'none' })
                   }}
+                  disabled={!isMyTurn}
                 >
                   オート
                 </button>
@@ -311,6 +329,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
           )}
         </Modal>
         
+        {/* トークン取得 */}
         <Modal isOpen={actionState.type === 'token_selecting'}>
           {actionState.type === 'token_selecting' && (
             <div className="flex flex-col gap-4">
@@ -347,7 +366,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
             </div>
           )}
         </Modal>
-
+        
+        {/* プレイヤー情報 */}
         <Modal isOpen={!!showMyInfo} onClose={() => setShowMyInfo(false)}>
           <div className="gap-4">
             <div className="text-lg font-bold">プレイヤー情報</div>
@@ -453,6 +473,78 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
               )
             })()}
           </div>
+        </Modal>
+        
+        {/* 山札 */}
+        <Modal isOpen={showDeck}  onClose={() => setShowDeck(false)}>
+          <div className="flex gap-4 justify-center">
+            {levels.map((level) => {
+              if (!decks) return null
+              
+              const key = `level${level}` as keyof typeof decks
+              const count = decks?.[key]?.length ?? 0
+
+              return (
+                <div
+                  key={level}
+                  onClick={() => {
+                    if (!isMyTurn) return
+                    playSound('card')
+                    setActionState({ type: 'deck_reserve_confirm', level: key })
+                  }}
+                  className={`w-[100px] h-[140px] rounded-lg overflow-hidden relative flex items-center justify-center ${
+                    isMyTurn
+                      ? 'bg-gray-700 cursor-pointer'
+                      : 'bg-gray-500 opacity-60 cursor-not-allowed'
+                  }`}
+                >
+                  <img
+                    src={`/img/card_lv_${level}.png`}
+                    draggable={false}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="relative text-lg font-bold">
+                    {count}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Modal>
+        
+        {/* 山札から予約 */}
+        <Modal isOpen={actionState.type === 'deck_reserve_confirm'}>
+          {actionState.type === 'deck_reserve_confirm' && (
+            <div className="flex flex-col gap-4 items-center">
+              <div>山札から予約しますか？</div>
+
+              <div className="flex gap-2">
+                <button
+                  className={`px-3 py-1 rounded ${isMyTurn ? 'bg-yellow-500' : 'bg-gray-500'}`}
+                  onClick={() => {
+                    socketClient.reserveCard({
+                      type: "deck",
+                      roomId,
+                      playerId: myPlayerId,
+                      level: actionState.level
+                    })
+                    setActionState({ type: 'none' })
+                    setShowDeck(false)
+                  }}
+                  disabled={!isMyTurn}
+                >
+                  予約する
+                </button>
+
+                <button
+                  className="px-3 py-1 bg-gray-500 rounded"
+                  onClick={() => setActionState({ type: 'none' })}
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          )}
         </Modal>
         
         <Modal isOpen={showTurnModal}>

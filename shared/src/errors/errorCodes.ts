@@ -8,6 +8,7 @@ export const GAME_ERROR_CODES = [
   "CARD_NOT_FOUND",
   "RESERVE_LIMIT_REACHED",
   "INVALID_PAYMENT",
+  "DECK_EMPTY",
 ] as const;
 
 export const ROOM_ERROR_CODES = [

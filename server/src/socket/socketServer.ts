@@ -6,6 +6,7 @@ import {
   takeDifferentTokens,
   takeSameTokens,
   reserveCard,
+  reserveFromDeck,
   buyCard,
   checkNobles,
   endTurn,
@@ -296,11 +297,22 @@ export function createSocketServer(httpServer: any) {
 
         const gameState = roomManager.getGameState(payload.roomId);
 
-        reserveCard(gameState, {
-          playerId: payload.playerId,
-          cardId: payload.cardId
-        });
+        switch (payload.type) {
+          case "market":
+            reserveCard(gameState, {
+              playerId: payload.playerId,
+              cardId: payload.cardId
+            });
+            break;
 
+          case "deck":
+            reserveFromDeck(gameState, {
+              playerId: payload.playerId,
+              level: payload.level
+            })
+            break;
+        }
+        
       });
 
     });

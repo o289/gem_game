@@ -6,6 +6,7 @@ import {
 } from "shared/socket/events"
 
 import { GameConfig, GameState, TokenSet } from "shared/types";
+import { ReserveCardPayload } from "shared/socket/events";
 
 class SocketClient {
 
@@ -128,13 +129,9 @@ class SocketClient {
 
   }
 
-  reserveCard(roomId: string, playerId: string, cardId: string) {
+  reserveCard(payload: ReserveCardPayload) {
 
-    this.socket.emit("reserveCard", {
-      roomId,
-      playerId,
-      cardId
-    });
+    this.socket.emit("reserveCard", payload);
 
   }
 
