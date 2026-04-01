@@ -126,9 +126,27 @@ export function generateLevel3Card(): Card {
   const baseTotal = 11;
   const basePoint = 3;
 
-  const totalCost = randomInt(9, 13);
-
   const colorsCount = randomInt(1, 4);
+
+  let totalCost: number
+
+  switch (colorsCount) {
+    case 1:
+      totalCost = randomInt(9, 10)
+      break;
+    case 2:
+      totalCost = randomInt(9, 12)
+      break
+    case 3:
+      totalCost = randomInt(10, 13)
+      break;
+    case 4:
+      totalCost = randomInt(10, 14)
+      break;
+    default:
+      totalCost = randomInt(9, 12)
+    
+  }
 
   return {
     id: randomUUID(),
