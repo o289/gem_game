@@ -78,6 +78,11 @@ function handleAction(
 
       const winner = getWinner(gameState, config);
 
+      if (!winner){
+        io.to(roomId).emit("gameStateUpdate", gameState);
+        return;
+      }
+
       // ★ winnerをgameStateに保存
       gameState.winnerId = winner.id;
       gameState.winnerName = winner.name;

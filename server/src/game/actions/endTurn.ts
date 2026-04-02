@@ -61,25 +61,31 @@ export function isGameEnded(gameState: GameState, config: GameConfig): boolean {
 }
 
 export function getWinner(gameState: GameState, config: GameConfig) {
-
   const players = [...gameState.players];
 
   if (config.winCondition.type === 'points') {
     const target = config.winCondition.target;
 
-    // ターン順に並び替え（roundStartPlayer から開始）
-    const startIndex = gameState.players.findIndex(p => p.id === gameState.roundStartPlayer);
+    // 勝利条件を満たしたプレイヤーを抽出
+    const winners = players.filter(p => p.point >= target);
 
-    for (let i = 0; i < gameState.players.length; i++) {
-      const index = (startIndex + i) % gameState.players.length;
-      const player = gameState.players[index];
+    if (winners.length === 0) {
+      return undefined; // ← ここ重要（誰も達していない）
+    }
+
+    // ラウンド終了順で優先（roundStartPlayerから順番）
+    const startIndex = players.findIndex(p => p.id === gameState.roundStartPlayer);
+
+    for (let i = 0; i < players.length; i++) {
+      const index = (startIndex + i) % players.length;
+      const player = players[index];
 
       if (player.point >= target) {
         return player;
       }
     }
 
-    return players[0];
+    return winners[0];
   }
 
   if (config.winCondition.type === 'turn_limit') {
@@ -87,5 +93,5 @@ export function getWinner(gameState: GameState, config: GameConfig) {
     return players[0];
   }
 
-  return players[0];
+  return undefined;
 }
