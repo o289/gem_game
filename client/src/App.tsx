@@ -40,12 +40,12 @@ export default function App() {
 
   const me = gameState?.players?.find(p => p.id === playerId);
   
-    const isReady =
-    !!gameState &&
-    Array.isArray(gameState.players) &&
-    gameState.players.length > 0 &&
-    !!me &&
-    assetLoaded;
+  const isReady =
+  !!gameState &&
+  Array.isArray(gameState.players) &&
+  gameState.players.length > 0 &&
+  !!me &&
+  assetLoaded;
 
   useEffect(() => {
     socketClient.onGameStarted((state) => {

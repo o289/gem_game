@@ -15,6 +15,11 @@ const generateImagePaths = () => {
     }
   })
 
+  // card level images
+  for (let i = 1; i <= 3; i++) {
+    paths.push(`/img/card_lv_${i}.png`)
+  }
+
   return paths
 }
 
