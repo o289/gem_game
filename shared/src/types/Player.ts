@@ -4,7 +4,7 @@ import { Card } from "./Card";
 export type Player = {
   id: string;
 
-  name: string
+  name: string;
 
   tokens: TokenSet;
 
@@ -20,7 +20,9 @@ export type Player = {
 export type RoomPlayer = {
   id: string;
 
-  name: string
+  name: string;
 
   socketId: string;
+
+  isDisconnected: boolean;
 }

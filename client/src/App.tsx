@@ -61,13 +61,6 @@ export default function App() {
 
   useEffect(() => {
     socketClient.onRoomUpdate((data) => {
-      console.log("*****")
-      console.log(data.players)
-      console.log(data.hostId)
-      console.log(data.status)
-      console.log("*****")
-
-
       setRoomPlayers(data.players)
       setHostId(data.hostId)
       setRoomStatus(data.status ?? null)

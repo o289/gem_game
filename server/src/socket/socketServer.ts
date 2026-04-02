@@ -124,6 +124,50 @@ export function createSocketServer(httpServer: any) {
 
     console.log("player connected", socket.id);
 
+    // 🔥 接続時に復帰処理（authベース）
+    const { roomId: authRoomId, playerId: authPlayerId } = socket.handshake.auth || {};
+
+    if (authRoomId && authPlayerId) {
+      const room = roomManager.getRoom(authRoomId);
+      const player = room?.players.find((p: any) => p.id === authPlayerId);
+
+      if (room && player) {
+        // socketId更新 & 再接続復帰
+        player.socketId = socket.id;
+        player.isDisconnected = false;
+
+        // 🔥 socketにplayer情報を保持
+        socket.data.playerId = authPlayerId;
+        socket.data.roomId = authRoomId;
+
+        console.log(player.socketId === socket.id)
+        console.log(player.isDisconnected)
+        console.log(socket.data.playerId)
+        console.log(socket.data.roomId)
+
+        // タイムアウトキャンセル
+        roomManager.clearDisconnectTimeout?.(authRoomId, authPlayerId);
+
+        socket.join(authRoomId);
+
+        console.log("✅ reconnect success", authPlayerId);
+
+        // 状態同期（軽量に1回送る）
+        if (room.status === "playing") {
+          try {
+            const gameState = roomManager.getGameState(authRoomId);
+            socket.emit("gameStateUpdate", gameState);
+          } catch {}
+        } else {
+          socket.emit("roomUpdate", {
+            players: room.players,
+            hostId: room.hostId,
+            status: room.status
+          });
+        }
+      }
+    }
+
     // ルーム参加
     socket.on("joinRoom", ({ roomId, playerId, name }) => {
 
@@ -383,23 +427,49 @@ export function createSocketServer(httpServer: any) {
 
     });
 
+    // 一時切断
     socket.on("disconnect", () => {
       console.log("player disconnected", socket.id);
 
       const rooms = roomManager.getAllRooms();
 
       for (const room of rooms) {
-        const player = room.players.find(p => p.socketId === socket.id);
+        const playerId = socket.data.playerId;
+        const roomId = socket.data.roomId;
+
+        if (!playerId || !roomId) continue;
+
+        const player = room?.players.find(p => p.id === playerId);
         if (!player) continue;
 
-        const roomId = room.id;
-        const playerId = player.id;
+        // 🔥 追加（これが最重要）
+        if (player.socketId !== socket.id) {
+          return;
+        }
+
+        // 🔥 一時切断フラグ
+        player.isDisconnected = true;
+        console.log(player.isDisconnected)
 
         // 🔥 ホストが切断した場合：10秒待って復帰しなければ削除
         if (room.hostId === playerId) {
           console.log("⏳ host disconnected → wait for reconnect", playerId);
 
           const timeout = setTimeout(() => {
+            const roomNow = roomManager.getRoom(roomId);
+
+            // 🔥 ルームがもう存在しない → 無視
+            if (!roomNow) {
+              return;
+            }
+            
+            const playerNow = roomNow?.players.find(p => p.id === playerId);
+
+            // 🔥 復帰済みなら何もしない
+            if (!playerNow || !playerNow.isDisconnected) {
+              return;
+            }
+
             console.log("❌ host timeout → delete room", playerId);
 
             roomManager.deleteRoom(roomId);
@@ -412,6 +482,14 @@ export function createSocketServer(httpServer: any) {
 
         // ⏳ 一定時間後に削除（猶予）
         const timeout = setTimeout(() => {
+
+          const roomNow = roomManager.getRoom(roomId);
+          const playerNow = roomNow?.players.find(p => p.id === playerId);
+
+          // 🔥 復帰済みなら何もしない
+          if (!playerNow || !playerNow.isDisconnected) {
+            return;
+          }
 
           console.log("⏳ timeout leave", playerId);
 

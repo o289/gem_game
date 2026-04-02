@@ -1,14 +1,9 @@
-import { GameState, GameConfig, defaultGameConfig } from "shared/types";
+import { GameState, GameConfig, defaultGameConfig, RoomPlayer } from "shared/types";
 import { createGameState } from "../state/createGameState";
 import { RoomError } from "shared/errors/Error";
 
 export type RoomStatus = "waiting" | "playing" | "finished";
 
-type RoomPlayer = {
-  id: string;
-  name: string;
-  socketId: string;
-};
 
 export type Room = {
   id: string;
@@ -23,7 +18,7 @@ export class RoomManager {
   private rooms = new Map<string, Room>();
   private disconnectTimeouts = new Map<string, NodeJS.Timeout>(); // key: `${roomId}:${playerId}`
 
-  createRoom(roomId: string, hostId: string, socketId: string, name: string): Room {
+  createRoom(roomId: string, hostId: string, socketId: string, name: string, isDisconnected: boolean = false): Room {
     if (this.rooms.has(roomId)) {
       throw new RoomError("ROOM_ALREADY_EXISTS", "そのルームはすでに作られています");
     }
@@ -32,7 +27,7 @@ export class RoomManager {
       id: roomId,
       hostId,
       players: [
-        { id: hostId, name, socketId }
+        { id: hostId, name, socketId, isDisconnected }
       ],
       config: defaultGameConfig,
       status: "waiting",
@@ -43,7 +38,7 @@ export class RoomManager {
     return room;
   }
 
-  joinRoom(roomId: string, playerId: string, socketId: string, name: string): Room {
+  joinRoom(roomId: string, playerId: string, socketId: string, name: string, isDisconnected: boolean = false): Room {
     const room = this.rooms.get(roomId);
 
     if (!room) {
@@ -72,7 +67,7 @@ export class RoomManager {
       throw new RoomError("ROOM_FULL", "ルームの参加上限に達しています");
     }
 
-    room.players.push({ id: playerId, name, socketId });
+    room.players.push({ id: playerId, name, socketId, isDisconnected });
 
     return room;
   }

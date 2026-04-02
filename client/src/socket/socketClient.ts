@@ -15,18 +15,72 @@ class SocketClient {
   private currentPlayerId?: string;
   private currentPlayerName?: string;
 
+  private handlers: {
+    gameStateUpdate?: (state: GameState) => void;
+    roomUpdate?: (data: any) => void;
+    gameStarted?: (state: GameState) => void;
+    gameEnded?: (payload: any) => void;
+    actionError?: (error: any) => void;
+  } = {};
+
   constructor() {
 
     this.socket = io({
-      transports: ["websocket"]
+      transports: ["websocket"],
+      autoConnect: false
     });
     this.socket.on("connect", () => {});
 
   }
 
   connect() {
+    // console.log("CONNECT AUTH", {
+    //   roomId: this.currentRoomId,
+    //   playerId: this.currentPlayerId
+    // });
+
+    this.socket = io({
+      transports: ["websocket"],
+      autoConnect: false,
+      auth: {
+        roomId: this.currentRoomId,
+        playerId: this.currentPlayerId,
+        name: this.currentPlayerName
+      }
+    });
+
+    // 🔥 既存handlerを新socketに再登録
+    if (this.handlers.gameStateUpdate) {
+      this.socket.on("gameStateUpdate", this.handlers.gameStateUpdate);
+    }
+    if (this.handlers.roomUpdate) {
+      this.socket.on("roomUpdate", this.handlers.roomUpdate);
+    }
+    if (this.handlers.gameStarted) {
+      this.socket.on("gameStarted", this.handlers.gameStarted);
+    }
+    if (this.handlers.gameEnded) {
+      this.socket.on("gameEnded", this.handlers.gameEnded);
+    }
+    if (this.handlers.actionError) {
+      this.socket.on("actionError", this.handlers.actionError);
+    }
 
     this.socket.connect();
+
+    // 🔥 接続後にjoin & state同期（reconnect対応）
+    this.socket.once("connect", () => {
+      if (this.currentRoomId && this.currentPlayerId && this.currentPlayerName) {
+        this.socket.emit("joinRoom", {
+          roomId: this.currentRoomId,
+          playerId: this.currentPlayerId,
+          name: this.currentPlayerName
+        });
+        this.socket.emit("getGameState", {
+          roomId: this.currentRoomId
+        });
+      }
+    });
 
   }
 
@@ -46,7 +100,8 @@ class SocketClient {
     this.currentPlayerName = name;
 
     if (!this.socket.connected) {
-      this.socket.connect();
+      this.connect();
+      return;
     }
 
     this.socket.emit("joinRoom", { roomId, playerId, name });
@@ -115,10 +170,11 @@ class SocketClient {
   // --------------------
 
   onGameStarted(callback: (state: GameState) => void) {
-    this.socket.on("gameStarted", (state) => {
+    this.handlers.gameStarted = (state) => {
       console.log("[socket] gameStarted received", state);
       callback(state);
-    });
+    };
+    this.socket.on("gameStarted", this.handlers.gameStarted);
   }
 
   offGameStarted() {
@@ -128,6 +184,7 @@ class SocketClient {
   }
 
   onRoomUpdate(callback: (data: any) => void) {
+    this.handlers.roomUpdate = callback;
     this.socket.on("roomUpdate", callback);
   }
 
@@ -137,6 +194,7 @@ class SocketClient {
 
   onGameStateUpdate(callback: (state: GameState) => void) {
 
+    this.handlers.gameStateUpdate = callback;
     this.socket.on("gameStateUpdate", callback);
 
   }
@@ -149,6 +207,7 @@ class SocketClient {
 
   onGameEnded(callback: (payload: any) => void) {
 
+    this.handlers.gameEnded = callback;
     this.socket.on("gameEnded", callback);
 
   }
@@ -161,6 +220,7 @@ class SocketClient {
 
   onActionError(callback: (error: any) => void) {
 
+    this.handlers.actionError = callback;
     this.socket.on("actionError", callback);
 
   }

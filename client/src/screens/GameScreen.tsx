@@ -18,6 +18,7 @@ import { CardData } from '../components/Card'
 import { Card } from 'shared/types'
 import { isGameError } from "shared/errors/errorCodes";
 import { playSound } from 'src/util/sound'
+import { LoadingScreen } from './LoadingScreen'
 
 
 type GameScreenProps = {
@@ -94,7 +95,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({roomId}) => {
   }, [])
 
 
-  
+  if (!gameState || !myPlayer) {
+    return <LoadingScreen type='initial'/>
+  }
 
 
   return (
